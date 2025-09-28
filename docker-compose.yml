@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: notes_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  backend:
+    build: ./backend
+    container_name: notes-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/notes_db
+      NODE_ENV: development
+      CORS_ORIGIN: http://20.52.27.129:3000
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: sh -c "sleep 10 && npm run dev"
+
+  frontend:
+    build: ./frontend
+    container_name: notes-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://20.52.27.129:3001
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: ["npm", "start"]
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
+

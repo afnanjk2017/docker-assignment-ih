@@ -1,0 +1,56 @@
+name: Deploy Docker Compose App on Azure VM
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Azure login (client secret)
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Run Docker Compose on VM
+        uses: azure/cli@v2.1.0
+        env:
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_VM_NAME: ${{ secrets.AZURE_VM_NAME }}
+        with:
+          inlineScript: |
+            # Install Docker if not present
+            az vm run-command invoke \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_VM_NAME" \
+              --command-id RunShellScript \
+              --scripts "if ! command -v docker >/dev/null; then curl -fsSL https://get.docker.com | sh; fi"
+
+            # Install docker-compose if not present
+            az vm run-command invoke \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_VM_NAME" \
+              --command-id RunShellScript \
+              --scripts "if ! command -v docker-compose >/dev/null; then sudo apt-get update && sudo apt-get install -y docker-compose; fi"
+
+            # Navigate to project directory and start containers
+            az vm run-command invoke \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_VM_NAME" \
+              --command-id RunShellScript \
+              --scripts "cd ~/docker-assignment-hi && docker compose down && docker compose up -d --build"
+
