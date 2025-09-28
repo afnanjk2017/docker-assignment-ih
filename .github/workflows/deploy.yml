@@ -52,5 +52,5 @@ jobs:
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --name "$AZURE_VM_NAME" \
               --command-id RunShellScript \
-              --scripts "cd /home/afnan/docker-assignment-hi && docker compose down && docker compose up -d --build"
+              --scripts "cd /home/afnan/docker-assignment-ih && docker compose down && docker compose up -d --build"
 
